@@ -5,7 +5,6 @@
 #include<time.h>
 #include<math.h>
 #include <windows.h>
-#include <winuser.h>
 #include "MMSystem.h"
 #pragma comment(lib, "winmm.lib");
 using namespace std;
@@ -13,10 +12,10 @@ using namespace std;
 #define ESC    	27
 
 
-unsigned char *imagens[10];
-unsigned char *mascaras[10];
-int TamP[10];
-//Aqui est√° o esquema de camadas para trabalhar com UI
+unsigned char *imagens[15];
+unsigned char *mascaras[15];
+int TamP[15];
+//Aqui est· o esquema de camadas para trabalhar com UI
 int layer = 0;
 int blink = 0;
 
@@ -25,8 +24,8 @@ struct gameConfigurations
   bool isPaused;
   bool inGame;
   int money;
-  bool time;
-  bool round;
+  int time;
+  int round;
   int resolution[2];
   int frames;
   double starttime;
@@ -35,14 +34,19 @@ struct gameConfigurations
   float timePassed;
   int index;
   int projectileIndex;
+  int enemiesIndex;
+  int enemiesMoveIndex;
+  int colisionsIndex;
   bool inCutscene;
   bool prep;
   int scene;
   bool menu;
   int select;
+  int horda;
 };
 
 int projectileNumber = 0;
+
 struct torre
 {
   float PosX;
@@ -57,6 +61,10 @@ struct enemies
   float PosY;
   char src;
   bool isEnabled;
+  float vetX;
+  float vetY;
+  float speed = 10;
+  const char * graphics;
 };
 
 struct projectile
@@ -74,32 +82,185 @@ struct projectile
   double Yvet;
 };
 
+struct colisionRoutes
+{
+  int x;
+  int y;
+  int vetX;
+  int vetY;
+};
+
 struct gameConfigurations gameConfig;
 struct torre torres[7];
 struct enemies inimigos[20]; 
 struct projectile projeteis[100];
+struct colisionRoutes colisionRoutesBoxes[17];
+
+void setRoutesConfig()
+{
+  colisionRoutesBoxes[0].x = 200;
+  colisionRoutesBoxes[0].y = 280;
+  colisionRoutesBoxes[0].vetX = -1;
+  colisionRoutesBoxes[0].vetY = 0;
+
+  colisionRoutesBoxes[1].x = 125;
+  colisionRoutesBoxes[1].y = 280;
+  colisionRoutesBoxes[1].vetX = 0;
+  colisionRoutesBoxes[1].vetY = 1;
+
+  colisionRoutesBoxes[2].x = 530;
+  colisionRoutesBoxes[2].y = 30;
+  colisionRoutesBoxes[2].vetX = 0;
+  colisionRoutesBoxes[2].vetY = 1;
+  
+  colisionRoutesBoxes[3].x = 125;
+  colisionRoutesBoxes[3].y = 380;
+  colisionRoutesBoxes[3].vetX = -1;
+  colisionRoutesBoxes[3].vetY = 0;
+
+  colisionRoutesBoxes[4].x = 410;
+  colisionRoutesBoxes[4].y = 280;
+  colisionRoutesBoxes[4].vetX = -1;
+  colisionRoutesBoxes[4].vetY = 0;
+
+  colisionRoutesBoxes[5].x = 420;
+  colisionRoutesBoxes[5].y = 340;
+  colisionRoutesBoxes[5].vetX = 0;
+  colisionRoutesBoxes[5].vetY = -1;
+
+  colisionRoutesBoxes[6].x = 480;
+  colisionRoutesBoxes[6].y = 340;
+  colisionRoutesBoxes[6].vetX = 0;
+  colisionRoutesBoxes[6].vetY = 1;
+
+  colisionRoutesBoxes[6].x = 640;
+  colisionRoutesBoxes[6].y = 340;
+  colisionRoutesBoxes[6].vetX = -1;
+  colisionRoutesBoxes[6].vetY = 0;
+
+  colisionRoutesBoxes[6].x = 640;
+  colisionRoutesBoxes[6].y = 170;
+  colisionRoutesBoxes[6].vetX = -1;
+  colisionRoutesBoxes[6].vetY = 0;
+
+  colisionRoutesBoxes[7].x = 480;
+  colisionRoutesBoxes[7].y = 340;
+  colisionRoutesBoxes[7].vetX = -1;
+  colisionRoutesBoxes[7].vetY = 0;
+
+  colisionRoutesBoxes[8].x = 985;
+  colisionRoutesBoxes[8].y = 340;
+  colisionRoutesBoxes[8].vetX = -1;
+  colisionRoutesBoxes[8].vetY = 0;
+  
+  colisionRoutesBoxes[9].x = 985;
+  colisionRoutesBoxes[9].y = 570;
+  colisionRoutesBoxes[9].vetX = 0;
+  colisionRoutesBoxes[9].vetY = -1;
+
+  colisionRoutesBoxes[10].x = 1130;
+  colisionRoutesBoxes[10].y = 570;
+  colisionRoutesBoxes[10].vetX = -1;
+  colisionRoutesBoxes[10].vetY = 0;
+
+  colisionRoutesBoxes[11].x = 630;
+  colisionRoutesBoxes[11].y = 340;
+  colisionRoutesBoxes[11].vetX = 0;
+  colisionRoutesBoxes[11].vetY = 1;
+
+  colisionRoutesBoxes[12].x = 810;
+  colisionRoutesBoxes[12].y = 60;
+  colisionRoutesBoxes[12].vetX = 0;
+  colisionRoutesBoxes[12].vetY = 1;
+
+  colisionRoutesBoxes[13].x = 810;
+  colisionRoutesBoxes[13].y = 170;  
+  colisionRoutesBoxes[13].vetX = 0;
+  colisionRoutesBoxes[13].vetY = 1;
+
+  colisionRoutesBoxes[14].x = 775;
+  colisionRoutesBoxes[14].y = 340;
+  colisionRoutesBoxes[14].vetX = -1; //aleatorio
+  colisionRoutesBoxes[14].vetY = 0;
+
+  colisionRoutesBoxes[15].x = 480;
+  colisionRoutesBoxes[15].y = 465;
+  colisionRoutesBoxes[15].vetX = -1;
+  colisionRoutesBoxes[15].vetY = 0;
+
+  colisionRoutesBoxes[16].x = 300;
+  colisionRoutesBoxes[16].y = 465;
+  colisionRoutesBoxes[16].vetX = -1;
+  colisionRoutesBoxes[16].vetY = 0;
+}
+
+
+void setInitialEnemyConfig()
+{
+	int dist = 0;
+  for(int index = 1; index < 19; index++)
+  {
+  	switch (index) {
+  		case 1:
+		  inimigos[index].PosX = 1320 + dist;
+		  inimigos[index].PosY = 540;
+		  inimigos[index].vetX = -1;
+		  inimigos[index].vetY = 0;
+		  break;
+		case 2:
+			inimigos[index].PosX = 770;
+    		inimigos[index].PosY = 706 + dist;
+    		inimigos[index].vetY = -1;
+    		inimigos[index].vetX = 0;
+    		break;
+    	case 3:
+    		inimigos[index].PosX = 500;
+    		inimigos[index].PosY = -180 - dist;
+    		inimigos[index].vetY = 1;
+    		inimigos[index].vetX = 0;
+    		break;
+	  }
+    inimigos[index].isEnabled = true;
+    //inimigos[index].vetX = -1;
+    //inimigos[index].vetY = 0;
+    inimigos[index].speed = 20;
+    dist += rand() % 80 + 120;
+  }
+  
+  inimigos[0].PosX = 770;
+  inimigos[0].PosY = 706;
+  inimigos[0].isEnabled = true;
+  inimigos[0].vetY = -1;
+  inimigos[0].vetX = 0;
+  inimigos[0].speed = 20;
+}
 
 
 void startGameConfig()
 {
-  gameConfig.isPaused = true;
-  gameConfig.inCutscene = true;
+  gameConfig.isPaused = false;
+  gameConfig.inCutscene = false;
   gameConfig.inGame = false;
   gameConfig.resolution[0] = 1280;
   gameConfig.resolution[1] = 720;
   gameConfig.frames = 0;
   gameConfig.starttime = 0;
-  gameConfig.first = TRUE;
+  gameConfig.first = true;
   gameConfig.fps = 0.0f;
   gameConfig.index = 0;
+  gameConfig.enemiesIndex = 0;
+  gameConfig.colisionsIndex = 0;
+  gameConfig.enemiesMoveIndex = 0;
   gameConfig.money = 100;
   gameConfig.round = 1;
   gameConfig.prep = false;
   gameConfig.scene = 4;
-  gameConfig.menu = false;
+  gameConfig.menu = true;
   gameConfig.select = 0;
-  
+  gameConfig.horda = 0;
 }
+
+
 void projectileConfig()
 {
   for(int index = 0; index < 100; index -=-1)
@@ -109,6 +270,8 @@ void projectileConfig()
     projeteis[index].y = 0;
   }
 }
+
+
 void setPlayerConfig()
 {
   torres[0].PosX = 410;
@@ -132,12 +295,7 @@ void setPlayerConfig()
   torres[4].isEnabled = false;
   torres[5].isEnabled = false;
   torres[6].isEnabled = false;
-
-  inimigos[0].PosX = 420;
-  inimigos[0].PosY = 320;
-
 }
-
 
 
 void escolhendopos(int id, int preco) {
@@ -253,11 +411,7 @@ void escolhendopos(int id, int preco) {
 			}
 		} 
 	}
-	
 }
-
-
-
 
 void backgroundConfig() 
 {
@@ -266,9 +420,9 @@ void backgroundConfig()
 
 void ImageConfig(int Tam, unsigned char *Img, unsigned char *Msk) 
 {
-// Tam ÔøΩ o tamanho dos ponteiros da imagem e da mÔøΩscara
-// Img ÔøΩ o ponteiro que aponta para o vetor que contÔøΩm a imagem capturada com getimage(..)
-// Msk ÔøΩ o ponteiro que serÔøΩ transformado em mÔøΩscara
+// Tam ? o tamanho dos ponteiros da imagem e da m?scara
+// Img ? o ponteiro que aponta para o vetor que cont?m a imagem capturada com getimage(..)
+// Msk ? o ponteiro que ser? transformado em m?scara
   int i;
   unsigned char B, G, R;
   B = Img[24];
@@ -294,7 +448,7 @@ void ImageConfig(int Tam, unsigned char *Img, unsigned char *Msk)
   }
 }
 
-#pragma region Mec√¢ncia de cordenada de tiro
+#pragma region Mec‚ncia de cordenada de tiro
 void shoot(int posInit[2], int posFinal[2], int structureSpeed)
 {
   if(!projeteis[gameConfig.index].isLoaded)
@@ -337,9 +491,9 @@ void shoot(int posInit[2], int posFinal[2], int structureSpeed)
     
     b = pow((projeteis[gameConfig.index].finX - projeteis[gameConfig.index].initX),2);
     double hip = sqrt(a + b);
-    printf("Cateto Adjacente do projetil %i : %lf\n",gameConfig.index,a);
-    printf("Cateto Oposto do projetil %i : %lf\n",gameConfig.index,b);
-    printf("Hipotenusa do projetil %i : %lf\n",gameConfig.index,hip);
+    // printf("Cateto Adjacente do projetil %i : %lf\n",gameConfig.index,a);
+    // printf("Cateto Oposto do projetil %i : %lf\n",gameConfig.index,b);
+    // printf("Hipotenusa do projetil %i : %lf\n",gameConfig.index,hip);
     if(b !=0)
     {
       projeteis[gameConfig.index].Xvet =  cos(b /hip);
@@ -356,8 +510,8 @@ void shoot(int posInit[2], int posFinal[2], int structureSpeed)
     {
       projeteis[gameConfig.index].Yvet = 0;
     }
-    printf("Seno do projetil (Yvet) %i : %lf\n",gameConfig.index,projeteis[gameConfig.index].Yvet);
-    printf("Coseno do projetil (Xvet) %i : %lf\n",gameConfig.index,projeteis[gameConfig.index].Xvet);
+    // printf("Seno do projetil (Yvet) %i : %lf\n",gameConfig.index,projeteis[gameConfig.index].Yvet);
+    // printf("Coseno do projetil (Xvet) %i : %lf\n",gameConfig.index,projeteis[gameConfig.index].Xvet);
     projeteis[gameConfig.index].isLoaded = true;
   }
   else
@@ -369,6 +523,9 @@ void shoot(int posInit[2], int posFinal[2], int structureSpeed)
     gameConfig.index++;
   }
 }
+
+
+
 #pragma endregion
 void Move()
 {
@@ -384,18 +541,23 @@ void Move()
 	}
 }
 
+
+
 void imagesRenderer()
 {
   TamP[0] = imagesize(0, 0, 60, 60);
   TamP[1] = imagesize(0, 0, 649, 479);
   TamP[2] = imagesize(0,0,1279,719);
-  TamP[3] = imagesize(0,0,48,69);
+  TamP[3] = imagesize(0,0,80,80);
   TamP[4] = imagesize(0,0,1279,719);
   TamP[5] = imagesize(0,0,1279,719);
   TamP[6] = imagesize(0,0,1279,719);
   TamP[7] = imagesize(0,0,100,100);
   TamP[8] = imagesize(0,0,1279,719);
   TamP[9] = imagesize(0,0,1279,719);
+  TamP[10] = imagesize(0,0,1279,719);
+  TamP[11] = imagesize(0,0,100,100);
+  TamP[12] = imagesize(0,0,100,100);
   
   readimagefile("Estilingue.bmp",0 , 0 , 100, 100); // carrega a imagem
   imagens[7] = (unsigned char *)malloc(TamP[7]);
@@ -425,6 +587,13 @@ void imagesRenderer()
   getimage(0, 0, 1279, 719, mascaras[9]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
   ImageConfig(TamP[9],imagens[9],mascaras[9]);
 
+  readimagefile("Cen·rio_MP3.bmp",0 , 0 , 1279, 719); // carrega a imagem
+  imagens[10] = (unsigned char *)malloc(TamP[10]);
+  mascaras[10] = (unsigned char *)malloc(TamP[10]);
+  getimage(0, 0, 1279, 719, imagens[10]); // captura para o ponteiro P
+  getimage(0, 0, 1279, 719, mascaras[10]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
+  ImageConfig(TamP[10],imagens[10],mascaras[10]);
+  
   readimagefile("Cen·rio_MP2.bmp",0 , 0 , 1279, 719); // carrega a imagem
   imagens[6] = (unsigned char *)malloc(TamP[6]);
   mascaras[6] = (unsigned char *)malloc(TamP[6]);
@@ -460,15 +629,33 @@ void imagesRenderer()
   getimage(0, 0, 639, 479, mascaras[1]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
   ImageConfig(TamP[1],imagens[1],mascaras[1]);
 
-  readimagefile("Frisk.bmp", 0, 0, 48, 69); // carrega a imagem
+  readimagefile("SaciT0.bmp", 0, 0, 80, 80); // carrega a imagem
   imagens[3] = (unsigned char *)malloc(TamP[3]);
   mascaras[3] = (unsigned char *)malloc(TamP[3]);
-  getimage(0, 0, 48, 69, imagens[3]); // captura para o ponteiro P
-  getimage(0, 0, 48, 69, mascaras[3]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
+  getimage(0, 0, 80, 80, imagens[3]); // captura para o ponteiro P
+  getimage(0, 0, 80, 80, mascaras[3]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
   ImageConfig(TamP[3],imagens[3],mascaras[3]);
+  
+  readimagefile("a.bmp", 0, 0, 100, 100); // carrega a imagem
+  imagens[11] = (unsigned char *)malloc(TamP[11]);
+  mascaras[11] = (unsigned char *)malloc(TamP[11]);
+  getimage(0, 0, 100, 100, imagens[11]); // captura para o ponteiro P
+  getimage(0, 0, 100, 100, mascaras[11]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
+  ImageConfig(TamP[11],imagens[11],mascaras[11]);
 
+  readimagefile("BoitataT.bmp", 0, 0, 100, 100); // carrega a imagem
+  imagens[12] = (unsigned char *)malloc(TamP[12]);
+  mascaras[12] = (unsigned char *)malloc(TamP[12]);
+  getimage(0, 0, 100, 100, imagens[12]); // captura para o ponteiro P
+  getimage(0, 0, 100, 100, mascaras[12]); // captura para a mÔøΩscara M (a mesma imagem de P, que depois serÔøΩ manipulada na rotina PreparaImg)
+  ImageConfig(TamP[12],imagens[12],mascaras[12]);
+  
+  
   cleardevice();// limpa a tela
+  
+  
 }
+
 
 void globalKeyListener()
 {
@@ -479,26 +666,22 @@ void globalKeyListener()
     int key = getch(); 
     if(key == VK_ESCAPE)
     {
-    	if (gameConfig.inGame) {
-    		gameConfig.inGame = false;
-    		gameConfig.isPaused = true;
-		} else {
-			//mciSendString("open \"./src/sounds/tema.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
-        	//mciSendString("play mp3 repeat", NULL, 0, NULL);
-        	gameConfig.inGame = true;
-        	gameConfig.isPaused = false;
-		}
-      //gameConfig.inGame = !gameConfig.inGame;
-      //gameConfig.isPaused = !gameConfig.isPaused;
+      gameConfig.inGame = !gameConfig.inGame;
+      gameConfig.isPaused = !gameConfig.isPaused;
+      if(gameConfig.inGame)
+      {
+        mciSendString("open \"./src/sounds/tema.mp3\" type mpegvideo alias tema", NULL, 0, NULL);
+        // mciSendString("play mp3 notify repeat", NULL, 0, 0);
+      }
     }
   }
 }
-
 
 void nothing()
 {
 
 }
+
 void putImages(int id)
 {
   putimage(0,0,mascaras[id],AND_PUT);
@@ -571,7 +754,52 @@ void putImages(int id)
   torres[6].isEnabled ? putimage(torres[6].PosX, torres[6].PosY, imagens[0], OR_PUT) : nothing();
   inimigos[0].isEnabled ? putimage(inimigos[0].PosX, inimigos[0].PosY, mascaras[3],AND_PUT) : nothing();
   inimigos[0].isEnabled ? putimage(inimigos[0].PosX, inimigos[0].PosY, imagens[3], OR_PUT) : nothing();
+  inimigos[1].isEnabled ? putimage(inimigos[1].PosX, inimigos[1].PosY, mascaras[3],AND_PUT) : nothing();
+  inimigos[1].isEnabled ? putimage(inimigos[1].PosX, inimigos[1].PosY, imagens[3], OR_PUT) : nothing();
+  inimigos[2].isEnabled ? putimage(inimigos[2].PosX, inimigos[2].PosY, mascaras[3],AND_PUT) : nothing();
+  inimigos[2].isEnabled ? putimage(inimigos[2].PosX, inimigos[2].PosY, imagens[3], OR_PUT) : nothing();
+  inimigos[3].isEnabled ? putimage(inimigos[3].PosX, inimigos[3].PosY, mascaras[12],AND_PUT) : nothing();
+  inimigos[3].isEnabled ? putimage(inimigos[3].PosX, inimigos[3].PosY, imagens[12], OR_PUT) : nothing();
+  
+  /*putimage(colisionRoutesBoxes[0].x, colisionRoutesBoxes[0].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[0].x, colisionRoutesBoxes[0].y, imagens[12], OR_PUT);
+  putimage(colisionRoutesBoxes[1].x, colisionRoutesBoxes[1].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[1].x, colisionRoutesBoxes[1].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[2].x, colisionRoutesBoxes[2].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[2].x, colisionRoutesBoxes[2].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[3].x, colisionRoutesBoxes[3].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[3].x, colisionRoutesBoxes[3].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[4].x, colisionRoutesBoxes[4].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[4].x, colisionRoutesBoxes[4].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[5].x, colisionRoutesBoxes[5].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[5].x, colisionRoutesBoxes[5].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[6].x, colisionRoutesBoxes[6].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[6].x, colisionRoutesBoxes[6].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[7].x, colisionRoutesBoxes[7].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[7].x, colisionRoutesBoxes[7].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[8].x, colisionRoutesBoxes[8].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[8].x, colisionRoutesBoxes[8].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[9].x, colisionRoutesBoxes[9].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[9].x, colisionRoutesBoxes[9].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[10].x, colisionRoutesBoxes[10].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[10].x, colisionRoutesBoxes[10].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[11].x, colisionRoutesBoxes[11].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[11].x, colisionRoutesBoxes[11].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[12].x, colisionRoutesBoxes[12].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[12].x, colisionRoutesBoxes[12].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[13].x, colisionRoutesBoxes[13].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[13].x, colisionRoutesBoxes[13].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[14].x, colisionRoutesBoxes[14].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[14].x, colisionRoutesBoxes[14].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[15].x, colisionRoutesBoxes[15].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[15].x, colisionRoutesBoxes[15].y, imagens[12] , OR_PUT);
+  putimage(colisionRoutesBoxes[16].x, colisionRoutesBoxes[16].y, mascaras[12],AND_PUT);
+  putimage(colisionRoutesBoxes[16].x, colisionRoutesBoxes[16].y, imagens[12] , OR_PUT);*/
+  
+  
+  setfillstyle(1,BLACK);
   rectangle(10,10,10,10);
+
   if(projeteis[gameConfig.projectileIndex].x - projeteis[gameConfig.projectileIndex].initX  > 5000 || projeteis[gameConfig.projectileIndex].x - projeteis[gameConfig.projectileIndex].initX < -600 || projeteis[gameConfig.projectileIndex].y > 1000 || projeteis[gameConfig.projectileIndex].y < -100 )
   {
     projeteis[gameConfig.projectileIndex].isLoaded = false;
@@ -619,13 +847,143 @@ void putImages(int id)
 }
 
 void Colision()
-{
-
+{ 
+  //printf("colis„o rodando %i",gameConfig.enemiesIndex);
+  if(inimigos[gameConfig.enemiesIndex].isEnabled)
+  {
+    if(inimigos[gameConfig.enemiesIndex].PosX > colisionRoutesBoxes[gameConfig.colisionsIndex].x && inimigos[gameConfig.enemiesIndex].PosX < colisionRoutesBoxes[gameConfig.colisionsIndex].x + 100 && inimigos[gameConfig.enemiesIndex].PosY < colisionRoutesBoxes[gameConfig.colisionsIndex].y && inimigos[gameConfig.enemiesIndex].PosY >  colisionRoutesBoxes[gameConfig.colisionsIndex].y + 100)
+    {
+      inimigos[gameConfig.enemiesIndex].vetX = colisionRoutesBoxes[gameConfig.colisionsIndex].vetX;
+      inimigos[gameConfig.enemiesIndex].vetY = colisionRoutesBoxes[gameConfig.colisionsIndex].vetY;
+      if (gameConfig.enemiesIndex <= 20) {
+      	gameConfig.enemiesIndex++;
+	  } else {
+	  	gameConfig.enemiesIndex = 0;
+	  }
+      //printf("inimigo %i mudou de rumo",gameConfig.enemiesIndex);
+    }
+    gameConfig.enemiesIndex++;
+    if(gameConfig.enemiesIndex == 20)
+    {
+      gameConfig.enemiesIndex = 0;
+      gameConfig.colisionsIndex++;
+      if(gameConfig.colisionsIndex == 17)
+      {
+        gameConfig.colisionsIndex = 0;
+      }
+    }
+  }
+  else
+  {
+    gameConfig.enemiesIndex++;
+    if(gameConfig.enemiesIndex == 20)
+    {
+      gameConfig.enemiesIndex = 0;
+      gameConfig.colisionsIndex++;
+      if(gameConfig.colisionsIndex == 17)
+      {
+        gameConfig.colisionsIndex = 0;
+      }
+    }
+  }
 }
 
 
+void MoveTroupes()
+{
+		//rota 1
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 760 && inimigos[gameConfig.enemiesIndex].PosX <= 860 && inimigos[gameConfig.enemiesIndex].PosY >= 220 && inimigos[gameConfig.enemiesIndex].PosY <= 320 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = -1; // esq
+		inimigos[gameConfig.enemiesIndex].vetY = 0;
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 310 && inimigos[gameConfig.enemiesIndex].PosX <= 410 && inimigos[gameConfig.enemiesIndex].PosY >= 256 && inimigos[gameConfig.enemiesIndex].PosY <= 356 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 0;
+		inimigos[gameConfig.enemiesIndex].vetY = -1; // cima
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 310 && inimigos[gameConfig.enemiesIndex].PosX <= 410 && inimigos[gameConfig.enemiesIndex].PosY >= 155 && inimigos[gameConfig.enemiesIndex].PosY <= 255 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = -1;
+		inimigos[gameConfig.enemiesIndex].vetY = 0; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 20 && inimigos[gameConfig.enemiesIndex].PosX <= 120 && inimigos[gameConfig.enemiesIndex].PosY >= 150 && inimigos[gameConfig.enemiesIndex].PosY <= 250 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 0;
+		inimigos[gameConfig.enemiesIndex].vetY = 1; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 50 && inimigos[gameConfig.enemiesIndex].PosX <= 150 && inimigos[gameConfig.enemiesIndex].PosY >= 380 && inimigos[gameConfig.enemiesIndex].PosY <= 480 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = -1;
+		inimigos[gameConfig.enemiesIndex].vetY = 0; 
+	} 
+	
+	// rota 2
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 880 && inimigos[gameConfig.enemiesIndex].PosX <= 980 && inimigos[gameConfig.enemiesIndex].PosY >= 530 && inimigos[gameConfig.enemiesIndex].PosY <= 670 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 0;
+		inimigos[gameConfig.enemiesIndex].vetY = -1; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 880 && inimigos[gameConfig.enemiesIndex].PosX <= 980 && inimigos[gameConfig.enemiesIndex].PosY >= 220 && inimigos[gameConfig.enemiesIndex].PosY <= 320 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = -1;
+		inimigos[gameConfig.enemiesIndex].vetY = 0; 
+	} 
+	
+	
+	// rota 3
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 500 && inimigos[gameConfig.enemiesIndex].PosX <= 600 && inimigos[gameConfig.enemiesIndex].PosY >= 50 && inimigos[gameConfig.enemiesIndex].PosY <= 150 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 1;
+		inimigos[gameConfig.enemiesIndex].vetY = 0; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 765 && inimigos[gameConfig.enemiesIndex].PosX <= 865 && inimigos[gameConfig.enemiesIndex].PosY >= 50 && inimigos[gameConfig.enemiesIndex].PosY <= 150 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 0;
+		inimigos[gameConfig.enemiesIndex].vetY = 1; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 755 && inimigos[gameConfig.enemiesIndex].PosX <= 855 && inimigos[gameConfig.enemiesIndex].PosY >= 140 && inimigos[gameConfig.enemiesIndex].PosY <= 240 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = -1;
+		inimigos[gameConfig.enemiesIndex].vetY = 0; 
+	} 
+	
+	if ( inimigos[gameConfig.enemiesIndex].PosX >= 648 && inimigos[gameConfig.enemiesIndex].PosX <= 548 && inimigos[gameConfig.enemiesIndex].PosY >= 140 && inimigos[gameConfig.enemiesIndex].PosY <= 240 ) {
+		inimigos[gameConfig.enemiesIndex].vetX = 0;
+		inimigos[gameConfig.enemiesIndex].vetY = 1; 
+	} 
+	
+	
+  inimigos[gameConfig.enemiesIndex].PosX += inimigos[gameConfig.enemiesIndex].vetX * inimigos[gameConfig.enemiesIndex].speed;
+  inimigos[gameConfig.enemiesIndex].PosY += inimigos[gameConfig.enemiesIndex].vetY * inimigos[gameConfig.enemiesIndex].speed;
+
+  gameConfig.enemiesMoveIndex++;
+  //gameConfig.enemiesIndex++;
+  
+  if(gameConfig.enemiesMoveIndex == 20)
+  {
+    gameConfig.enemiesMoveIndex = 0;
+  }
+  /*
+  if (gameConfig.enemiesIndex == 20)
+  {
+    gameConfig.enemiesIndex = 0;
+  }
+
+*/
+}
+
+void EnemySpawn()
+{
+  if(!inimigos[0].isEnabled)
+  {
+    inimigos[0].isEnabled = true;
+    inimigos[0].PosX = 100;
+    inimigos[0].PosY = 300;
+  }
+  
+}
+
 
 int main()  {
+	mciSendString("open \"./src/titulo.mp3\" type mpegvideo alias menu", NULL, 0, NULL);
 	int pg = 1;
 	POINT mouse;
 	int intro = 1;
@@ -638,42 +996,45 @@ int main()  {
 	startGameConfig();
 	initwindow(gameConfig.resolution[0], gameConfig.resolution[1]);	
 	imagesRenderer();
+	//setInitialEnemyConfig();
 	setPlayerConfig();
+	setRoutesConfig();
 	backgroundConfig();
 	projectileConfig();
   
   while(1)
   {
-  	settextstyle(6,HORIZ_DIR,12);
+	settextstyle(9,HORIZ_DIR,13);
 	GetCursorPos(&mouse);
+	//Colision();
 	mousex = mouse.x;
 	mousey = mouse.y;
+	if (pg == 1) pg = 2; else pg = 1;
+	setactivepage(pg);
+	cleardevice();    
+	putImages(gameConfig.scene);
+	Move();
+	putImages(gameConfig.scene); 
+	//MoveTroupes();
+	//StateCheck(personagem1.direction);
+	putImages(gameConfig.scene);
+	setvisualpage(pg);
     if (gameConfig.first)
     {
         gameConfig.frames = 0;
         gameConfig.starttime = gameConfig.timePassed;
         gameConfig.first = false;
     }
+    
     //Clock inicial para controle de frame
     globalKeyListener();
     
-    //in game
-    if(gameConfig.inGame) {
-      if (pg == 1) pg = 2; else pg = 1;
-      setactivepage(pg);
-      cleardevice();    
-      putImages(gameConfig.scene);
-      Move();
-      putImages(gameConfig.scene); 
-      Colision();
-      putImages(gameConfig.scene);
-      //MoveTroupes();
-      //StateCheck(personagem1.direction);
-      putImages(gameConfig.scene);
-      setvisualpage(pg);
-	  
-	  if (gameConfig.inCutscene && gameConfig.prep == false) {
+    
+    // cutscene
+    if (gameConfig.inCutscene) {
     	// cutscene (?)
+    	mciSendString("stop menu", NULL, 0, NULL);
+    	gameConfig.scene = 4;
     	if (intro == 1) mciSendString("play src/Intro.wav", NULL, 0, NULL);
     	outtextxy(posXt,200,"MONTE SEU EX…RCITO...");
     	if (posXt <= 150) {
@@ -686,20 +1047,30 @@ int main()  {
 			} else if (vel < 2) {
 				vel = 2;
 			}
-			posXt += vel;
-		if (posXt >= 520 && gameConfig.select == 0) {
-			sprintf(output,"$ %d", gameConfig.money);
-			if (intro == 0) {
-				mciSendString("open \"./src/sounds/tema.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
-        		mciSendString("play mp3 repeat", NULL, 0, NULL);
-				intro = 2;
-			}
-			outtextxy(1185,30,output);
-			posXt = 2000;
-			gameConfig.scene = 5;
-			
+		}
+		posXt += vel;
+		if (posXt >= 400) {
+			gameConfig.inGame = true;
+			gameConfig.inCutscene = false;
+		}
+	}
+    
+    
+    //in game
+    if(gameConfig.inGame && gameConfig.inCutscene == false) {
+		sprintf(output,"$ %d", gameConfig.money);
+		if (intro == 0) {
+			mciSendString("open \"./sound/src/tema.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
+    		mciSendString("play mp3 repeat", NULL, 0, NULL);
+			intro = 2;
+		}
+		posXt = 2000;
+		gameConfig.scene = 5;
+		
+		if (gameConfig.horda == 0) {
+			outtextxy(1185,615,output);
 			// checa se o mouse ta sobre o estilingue
-			if ( mousex >= 1061 && mousex <= 1116 && mousey >= 673 && mousey <= 723 ) {
+			if ( mousex >= 1061 && mousex <= 1116 && mousey >= 673 && mousey <= 723 && gameConfig.select == 0 ) {
 				gameConfig.scene = 6;
 				outtextxy(mousex,mousey-10,"estilingue $50");
 				if ((GetKeyState(VK_LBUTTON) & 0x80) != 0) {
@@ -707,45 +1078,59 @@ int main()  {
 					gameConfig.select = 1; //seleciona estilingue 
 				}
 			}
+			
+			//checa se o estilingue ta selecionado
+			if ( gameConfig.select == 1 ) {
+				gameConfig.scene = 6;
+				escolhendopos(7,50);
+				
+				//caso o player desista da seleÁ„o
+				if ((GetKeyState(VK_RBUTTON) & 0x80) != 0) {
+					mciSendString("play src/Cancel.wav", NULL, 0, NULL);
+					gameConfig.select = 0;
+				}
+			}
+			
+			//checa se o mouse t· sobre a seta
+			if ( gameConfig.select == 0 && mousex >= 1165 && mousex <= 1270 && mousey >= 11 && mousey <= 102 ) {
+				gameConfig.scene = 10;
+				if ((GetKeyState(VK_LBUTTON) & 0x80) != 0) { // checa se o player clicou na seta
+					mciSendString("play src/Start.wav", NULL, 0, NULL);
+					Sleep(1500);
+					gameConfig.scene = 5; 
+					setInitialEnemyConfig();
+					gameConfig.horda = 1; // comeÁa o ataque
+				}
+			}
 		}
-
-	}
-}}
-    
-    // estilingue selecionado, agr o player escolher a torre
-	if ( gameConfig.select == 1 ) {
-		outtextxy(1185,30,output);
-		gameConfig.scene = 6;
-		escolhendopos(7,50);
-		
-		//caso o player desista da seleÁ„o
-		if ((GetKeyState(VK_RBUTTON) & 0x80) != 0) {
-			mciSendString("play src/Cancel.wav", NULL, 0, NULL);
-			gameConfig.select = 0;
+	
+	
+	
+		if(gameConfig.horda == 1) {
+			gameConfig.scene = 2; 
+			MoveTroupes();
+			Colision();
 		}
 	}
 	
-    /*
-	tem algo errado aqui
+
+
 	//game menu
     if(gameConfig.menu) {
+	mciSendString("play menu repeat", NULL, 0, NULL);
       gameConfig.scene = 8;
-      putimage(0, 0, mascaras[8], AND_PUT);
-      putimage(0, 0, imagens[8], OR_PUT);
-      mciSendString("open \"./src/titulo.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
-	  mciSendString("play mp3 repeat", NULL, 0, NULL);
-	  if ( mousex >= 1086 && mousex <= 1266 && mousey >= 562 && mousey <= 405 ) {
+	  if ( mousex >= 1086 && mousex <= 1266 && mousey <= 562 && mousey >= 405 ) {
         	gameConfig.scene = 9;
         	if ((GetKeyState(VK_LBUTTON) & 0x80) != 0) {
-        		gameConfig.inGame = true;
         		gameConfig.menu = false;
+        		gameConfig.inCutscene = true;
 			}
 		}
       
-    } */
+    } 
     
     //game paused
-    if(gameConfig.isPaused) {
+    if(gameConfig.isPaused && gameConfig.inCutscene == false) {
       if (pg == 1) pg = 2; else pg = 1;
       setactivepage(pg);
       cleardevice(); 
@@ -765,7 +1150,6 @@ int main()  {
       }
       setvisualpage(pg);
     }
-    
     gameConfig.frames++;
     
     
